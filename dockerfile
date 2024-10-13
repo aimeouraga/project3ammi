@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Copy the requirements.txt file and .env file
 COPY requirements.txt ./
-COPY .env ./
+# COPY .env ./
 
 
 # Install the dependencies
