@@ -23,14 +23,14 @@ jobs:
       uses: docker/login-action@v2
       with:
         registry: https://truetestv1.azurecr.io/
-        username: ${{ secrets.AzureAppService_ContainerUsername_01eb869599604bcc9277de62b47e1e60 }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_e6cc93668ec1461cb0e2e4f197dca73c }}
+        username: ${{ secrets.AzureAppService_ContainerUsername_558dbfb96acd43ae9a21c2faa680aec1 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_fa799726d73c45b0ab82176f698b96b8 }}
 
     - name: Build and push container image to registry
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: truetestv1.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_01eb869599604bcc9277de62b47e1e60 }}/truetestv1:${{ github.sha }}
+        tags: truetestv1.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_558dbfb96acd43ae9a21c2faa680aec1 }}/truetestv1:${{ github.sha }}
         file: ./Dockerfile
 
   deploy:
@@ -47,5 +47,5 @@ jobs:
       with:
         app-name: 'truetestv1'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_3aa0e17d5fdd460db24aa94492d68f66 }}
-        images: 'truetestv1.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_01eb869599604bcc9277de62b47e1e60 }}/truetestv1:${{ github.sha }}'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_15a98cfed40f4affad0f19031013c5b5 }}
+        images: 'truetestv1.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_558dbfb96acd43ae9a21c2faa680aec1 }}/truetestv1:${{ github.sha }}'
