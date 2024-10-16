@@ -91,3 +91,4 @@ def predict_sentiment(model, device, input_tensor):
             confidence_score = 1 - probability  # Confidence in it being Negative
 
     return sentiment_label, confidence_score
+

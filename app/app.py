@@ -1,18 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from model.model import load_model, predict_sentiment
 from data.preprocessing import preprocess_text
 from auth.auth import Token, authenticate_user, User, get_current_active_user, create_access_token
 from datetime import timedelta
-# from dotenv import load_dotenv
-import os
-from dotenv import load_dotenv
-import os
-load_dotenv()
 
-# Load environment variables
-# load_dotenv()
 
 # Initialize FastAPI
 app = FastAPI()
@@ -25,7 +18,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Define the input data structure using Pydantic
 class ReviewInput(BaseModel):
-    review: str
+    review: str = Field(..., min_length=1, description="Review text cannot be empty")
 
 # Startup event: Load the model and tokenizer during app startup
 @app.on_event("startup")
