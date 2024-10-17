@@ -85,10 +85,9 @@ def predict_sentiment(model, device, input_tensor):
         # Determine the sentiment label and confidence score
         if probability >= 0.5:
             sentiment_label = "Negative"
-            confidence_score = probability  # Confidence in it being Positive
+            confidence_score = probability
         else:
             sentiment_label = "Positive"
-            confidence_score = 1 - probability  # Confidence in it being Negative
+            confidence_score = 1 - probability
 
     return sentiment_label, confidence_score
-

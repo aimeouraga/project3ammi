@@ -1,11 +1,12 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from model.model import load_model, predict_sentiment
 from data.preprocessing import preprocess_text
 from auth.auth import Token, authenticate_user, User, get_current_active_user, create_access_token
 from datetime import timedelta, datetime, timezone
 from dotenv import load_dotenv
+from typing import Union, Optional
 import os
 import io
 import pandas as pd
@@ -37,10 +38,6 @@ device = None
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# Define the input data structure using Pydantic
-class ReviewInput(BaseModel):
-    review: str = Field(..., min_length=1, description="Review text cannot be empty")
-
 # Startup event: Load the model and tokenizer during app startup
 @app.on_event("startup")
 def startup_event():
@@ -49,62 +46,75 @@ def startup_event():
 
 # Function to save predictions to a CSV on Azure Blob Storage
 def save_prediction_to_csv(data: dict):
-    # Load the existing CSV from Azure Blob Storage
     try:
         blob_client = container_client.get_blob_client(csv_blob_name)
         download_stream = blob_client.download_blob()
         existing_data = pd.read_csv(io.BytesIO(download_stream.readall()))
     except Exception:
-        # If CSV does not exist, create an empty DataFrame
         existing_data = pd.DataFrame(columns=["username", "review", "sentiment", "confidence", "request_time", "response_time"])
 
-    # Add the new prediction data
     new_data = pd.DataFrame([data])
     updated_data = pd.concat([existing_data, new_data], ignore_index=True)
 
-    # Save the updated CSV back to Azure Blob Storage
     with io.BytesIO() as output_stream:
         updated_data.to_csv(output_stream, index=False)
         output_stream.seek(0)
         blob_client.upload_blob(output_stream, overwrite=True)
 
-# prediction endpoint
+# Function to combine reviews from the CSV file into a single text
+def extract_text_from_csv(file: UploadFile) -> str:
+    df = pd.read_csv(file.file)
+    text = " ".join(df['review'].astype(str).tolist())
+    return text
+
+# Define the prediction endpoint that handles both text and CSV
 @app.post("/predict")
-def predict(data: ReviewInput, current_user: User = Depends(get_current_active_user)):
-    try:
-        # Record request time
-        request_time = datetime.now(timezone.utc)
-        
-        # Preprocess the review text
-        input_tensor = preprocess_text(data.review)
+async def predict(text: Optional[str] = Form(None), file: Optional[UploadFile] = File(None), current_user: User = Depends(get_current_active_user)):
+    input_text = None
 
-        
-        start_time = time.time()
+    try: 
+        # Ensure that only one of text or file is provided, not both
+        if text and file:
+            return {"error": "Please provide either a review or a CSV file, not both."}
 
-        # Make the prediction
-        sentiment_label, probability = predict_sentiment(model, device, input_tensor)
+        # If single text input (review) is provided
+        if text:
+            input_text = text
+            input_tensor = preprocess_text(input_text)
+            sentiment_label, confidence_score = predict_sentiment(model, device, input_tensor)
 
-        response_time = time.time() - start_time  
+            return {
+                "review": input_text,
+                "sentiment": sentiment_label,
+                "Model Confidence Score": confidence_score,
+            }
         
-        # Create a log entry for Application Insights
-        logger.info(f"User: {current_user.username} - Prediction: {sentiment_label} - Confidence: {probability}")
-        
-        # Log the prediction to Azure Blob Storage as CSV
-        save_prediction_to_csv({
-            "username": current_user.username,
-            "review": data.review,
-            "sentiment": sentiment_label,
-            "confidence": probability,
-            "request_time": request_time,
-            "response_time": response_time
-        })
+        # If a file is uploaded (CSV file case)
+        if file:
+            if not file.filename.endswith(".csv"):
+                return {"error": "Unsupported file type. Please upload a CSV file."}
 
-        # Return the result
-        return {"review": data.review, "sentiment": sentiment_label, "Model Confidence Score": probability, "Response Time (s)": response_time}
+            # Combine all reviews from the CSV file into a single text
+            input_text = extract_text_from_csv(file)
+
+            input_tensor = preprocess_text(input_text)
+            sentiment_label, confidence_score = predict_sentiment(model, device, input_tensor)
+
+            return {
+                "combined_reviews": input_text[:500],  # Show first 500 characters of combined text for debugging
+                "overall_sentiment": sentiment_label,
+                "Model Confidence Score": confidence_score,
+            }
+
+        # If neither review text nor file is provided
+        return {"error": "Please provide either a review or upload a CSV file for sentiment analysis."}
 
     except Exception as e:
+        # Log the error to investigate any issues
+        logger.error(f"Error: {e}")
         return {"error": str(e), "message": "An error occurred during the prediction process."}
 
+# Token generation for authentication
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(form_data.username, form_data.password)
