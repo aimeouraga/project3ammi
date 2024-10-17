@@ -13,7 +13,6 @@ This project, **Sentiment Analysis on Movie Reviews**, is part of the MLOps cour
 - [Running the Application](#running-the-application)
 - [API Endpoints](#api-endpoints)
 - [Tests](#tests)
-- [Cloud Services](#cloud-services)
 - [Contributors](#contributors)
 
 ## Project Description
