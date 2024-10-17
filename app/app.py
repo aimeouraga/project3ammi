@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from model.model import load_model, predict_sentiment
 from data.preprocessing import preprocess_text
-from auth.auth import Token, authenticate_user, User, get_current_active_user, create_access_token
+from auth import Token, authenticate_user, User, get_current_active_user, create_access_token
 from datetime import timedelta, datetime, timezone
 from dotenv import load_dotenv
 from typing import Union, Optional
