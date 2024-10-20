@@ -85,3 +85,4 @@ watchfiles==0.24.0
 python-jose
 azure.storage.blob
 opencensus.ext.azure
+evidently
