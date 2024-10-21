@@ -7,6 +7,10 @@ from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
 import streamlit.components.v1 as components
 import os
+from azure.storage.blob import BlobServiceClient
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+
 
 # Set Streamlit page configuration
 st.set_page_config(
